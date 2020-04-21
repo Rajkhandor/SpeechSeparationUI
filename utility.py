@@ -43,8 +43,8 @@ class Video_Processing:
 		self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 		print('Running on device: {}'.format(self.device))
 
-		self.mtcnn = MTCNN(keep_all=True, device=self.device)
-		self.resnet = InceptionResnetV1(pretrained="vggface2").eval()
+		self.mtcnn = MTCNN(keep_all=True, device=self.device).eval()
+		self.resnet = InceptionResnetV1(pretrained="vggface2").eval().to(self.device)
 
 		self.total_people = 0
 		self.embeddings_initial = []
@@ -74,7 +74,12 @@ class Video_Processing:
 			cropped.save("preprocessing/faces/Cropped" + str(self.total_people) + ".png")
 
 			cropped_tensors = extract_face(frame0, (x1,y1,x2,y2)).to(self.device).view(-1,3,160,160)
-			self.embeddings_initial.append(self.resnet(cropped_tensors))
+			cropped_tensors = self.resnet(cropped_tensors)
+			cropped_tensors = cropped_tensors.detach()
+			if self.device.type == "cuda":
+				cropped_tensors = cropped_tensors.cpu()
+			cropped_tensors = cropped_tensors.numpy()
+			self.embeddings_initial.append(cropped_tensors)
 			self.total_people += 1
 
 		# Seperate video with no audio
@@ -105,12 +110,16 @@ class Video_Processing:
 
 				cropped_tensors = extract_face(frame, (x1,y1,x2,y2)).to(self.device).view(-1,3,160,160)
 				emb = self.resnet(cropped_tensors)
+				emb = emb.detach()
+				if self.device.type == "cuda":
+					emb = emb.cpu()
+				emb = emb.numpy()
 				
 				idx = -1
 				min_dist = 10**9
 				for i,e in enumerate(self.embeddings_initial):
 					d = emb-e
-					d = d.detach().numpy().reshape(512)
+					d = d.reshape(512)
 
 					# https://github.com/cmusatyalab/openface/blob/master/demos/compare.py
 					dist = np.dot(d,d)  # https://cmusatyalab.github.io/openface/demo-2-comparison/
