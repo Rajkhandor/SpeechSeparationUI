@@ -2,7 +2,7 @@ from PyQt5.QtCore import *
 from PyQt5.QtMultimedia import *
 
 from PyQt5.QtMultimediaWidgets import QVideoWidget
-from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QWidget, QStyle, QFileDialog, QCheckBox
+from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QWidget, QStyle, QFileDialog, QCheckBox, QSizePolicy
 from PyQt5.QtGui import QIcon
 
 import os
@@ -47,6 +47,7 @@ class VideoPlayer(main.Ui_window, QMainWindow):
         self.media_player.durationChanged.connect(self.durationChanged)
         self.media_player.error.connect(self.handleError)
 
+
         # ---------------------------------------------------------------------------
         
         self.audio_player = None
@@ -74,6 +75,7 @@ class VideoPlayer(main.Ui_window, QMainWindow):
 
         c = Video_Processing()
         c.preprocessing(self.input_file_name)
+        emb = c.embeddings(self.input_file_name)
 
         c = Audio_Processing()
         c.preprocessing(self.input_file_name)
@@ -85,6 +87,7 @@ class VideoPlayer(main.Ui_window, QMainWindow):
 
         # Extracted faces from first frame are stored in preprocessing/faces/
         faces = os.listdir('preprocessing/faces/')
+        faces.sort()
         self.face_cb = [QCheckBox(self.wid) for i in range(len(faces))]
         
         c=0
@@ -140,10 +143,14 @@ class VideoPlayer(main.Ui_window, QMainWindow):
         if(len(audio_sequence) == 0):
             return
 
-        c = Audio_Processing()
-        c.mix_audio(self.curr_dir, audio_sequence) # Mixed audio is saved at `mixed.mp3`
+        url = None
 
-        url = QUrl.fromLocalFile(os.path.join(self.curr_dir, 'preprocessing/audio/mixed.mp3'))
+        if(len(audio_sequence) < len(self.face_cb)):
+            c = Audio_Processing()
+            c.mix_audio(self.curr_dir, audio_sequence) # Mixed audio is saved at `mixed.mp3`
+            url = QUrl.fromLocalFile(os.path.join(self.curr_dir, 'preprocessing/audio/mixed.mp3'))
+        else:
+            url = QUrl.fromLocalFile(os.path.join(self.curr_dir, 'preprocessing/audio/original.mp3'))
 
         self.playlist = QMediaPlaylist()
         self.playlist.addMedia(QMediaContent(url))
