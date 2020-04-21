@@ -127,6 +127,16 @@ class Video_Processing:
 						idx = i
 						min_dist = dist
 				a[idx].append(emb)
+
+				# testing for face tracking
+				'''
+				crop = frame.crop((x1,y1,x2,y2))
+				crop = cv2.cvtColor(np.array(crop), cv2.COLOR_RGB2BGR)
+				cv2.imshow(str(idx), crop)
+				cv2.waitKey(1)
+				'''
+				
+			print(len(a[0]))
 		return a
 
 
