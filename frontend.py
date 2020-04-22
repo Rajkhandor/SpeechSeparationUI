@@ -206,9 +206,12 @@ class VideoPlayer(main.Ui_window, QMainWindow):
         # Choose which audio files to mix from the status of checkboxes on main window
         audio_sequence = []
         c=0
+        no=0
         for checkbox in self.face_cb:
+            no = no*2
             if(checkbox.isChecked()):
                 audio_sequence.append(c)
+                no += 1
             c+=1
 
         if(len(audio_sequence) == 0):
@@ -218,10 +221,10 @@ class VideoPlayer(main.Ui_window, QMainWindow):
 
         if(len(audio_sequence) < len(self.face_cb)):
             c = Audio_Processing()
-            c.mix_audio(self.curr_dir, audio_sequence) # Mixed audio is saved at `mixed.mp3`
-            url = QUrl.fromLocalFile(os.path.join(self.curr_dir, 'preprocessing/audio/mixed.mp3'))
+            c.mix_audio(self.curr_dir, audio_sequence) # Mixed audio is saved at `no.wav`
+            url = QUrl.fromLocalFile(os.path.join(self.curr_dir, 'preprocessing/audio/' + str(no) + '.wav'))
         else:
-            url = QUrl.fromLocalFile(os.path.join(self.curr_dir, 'preprocessing/audio/original.mp3'))
+            url = QUrl.fromLocalFile(os.path.join(self.curr_dir, 'preprocessing/audio/original.wav'))
 
         self.playlist = QMediaPlaylist()
         self.playlist.addMedia(QMediaContent(url))
