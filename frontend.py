@@ -158,13 +158,14 @@ class VideoPlayer(main.Ui_window, QMainWindow):
 
                 emb_1, emb_2 = np.array(emb_1), np.array(emb_2)
 
+                print(emb_1.shape, emb_2.shape, inp_audio.shape)
                 output_audios = generate_audio(MODEL, inp_audio, [emb_1, emb_2],
                                                device=self.device, save=False)
                 separated_audio["first"].append(output_audios[0])
                 separated_audio["second"].append(output_audios[1])
 
             # remainder
-            if remainder:
+            if 0:
                 emb_1, emb_2 = person_1[n_slices*frames:], person_2[n_slices*frames:]
                 print(n, frames, len(person_1), len(emb_1))
                 inp_audio = mixed_audio[n_slices*audio_frames:]
@@ -178,6 +179,7 @@ class VideoPlayer(main.Ui_window, QMainWindow):
                 inp_audio = _pad(inp_audio, len(inp_audio), sr*3)
 
                 emb_1, emb_2, inp_audio = np.expand_dims(emb_1, axis=1), np.expand_dims(emb_2, axis=1), np.expand_dims(inp_audio, axis=1)
+                print(emb_1.shape, emb_2.shape, inp_audio.shape)
                 output_audios = generate_audio(MODEL, inp_audio, [emb_1, emb_2],
                                                device=self.device, save=False)
                 separated_audio["first"].append(output_audios[0])
@@ -187,6 +189,8 @@ class VideoPlayer(main.Ui_window, QMainWindow):
             # TODO: 1 v all
         
         separated_audio = {k: np.hstack(v) for k, v in separated_audio.items()}
+        for i, (k, v) in enumerate(separated_audio.items()):
+            librosa.output.write_wav(f"preprocessing/audio/{i+1}.wav", v, sr=16000)
         self.is_audio_separated = True
         return separated_audio
 
@@ -221,7 +225,7 @@ class VideoPlayer(main.Ui_window, QMainWindow):
 
         if(len(audio_sequence) < len(self.face_cb)):
             c = Audio_Processing()
-            c.mix_audio(self.curr_dir, audio_sequence) # Mixed audio is saved at `no.wav`
+            #c.mix_audio(self.curr_dir, audio_sequence) # Mixed audio is saved at `no.wav`
             url = QUrl.fromLocalFile(os.path.join(self.curr_dir, 'preprocessing/audio/' + str(no) + '.wav'))
         else:
             url = QUrl.fromLocalFile(os.path.join(self.curr_dir, 'preprocessing/audio/original.wav'))

@@ -23,17 +23,17 @@ class Audio_Processing:
 	def mix_audio(self, curr_dir, seq):
 		audio_sequence = []
 		for i in seq:
-			audio_sequence.append(os.path.join(curr_dir, "preprocessing/audio/" + str(i) + ".mp3"))
+			audio_sequence.append(os.path.join(curr_dir, "preprocessing/audio/" + str(i) + ".wav"))
 
 		# Doing it naively to simplify mixing of audios
-		output = AudioSegment.from_mp3(audio_sequence[0])
+		output = AudioSegment.from_wav(audio_sequence[0])
 
 		for audio in audio_sequence[1:]:
-			s = AudioSegment.from_mp3(audio)
+			s = AudioSegment.from_wav(audio)
 			output = output.overlay(s)
 
 		# Saving audio file locally and then opening it again for playing
-		output.export(os.path.join(curr_dir, 'preprocessing/audio/mixed.mp3'), format="mp3")
+		output.export(os.path.join(curr_dir, 'preprocessing/audio/mixed.wav'), format="wav")
 
 
 
