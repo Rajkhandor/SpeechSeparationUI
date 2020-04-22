@@ -16,7 +16,7 @@ class Audio_Processing:
 
 	def preprocessing(self, path):
 		# Separate audio from video
-		command = f'ffmpeg -i {path} preprocessing/audio/original.mp3'
+		command = f'ffmpeg -i {path} preprocessing/audio/original.wav'
 		subprocess.call(command, shell=True)
 
 

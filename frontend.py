@@ -16,6 +16,14 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 
 from utility import Video_Processing, Audio_Processing
 
+import librosa
+import numpy as np
+from src import generate_audio, load_model
+
+import torch
+
+MODEL_PATH = "/tmp/last_full.pth"
+
 class VideoPlayer(main.Ui_window, QMainWindow):
 
     def __init__(self):
@@ -73,9 +81,12 @@ class VideoPlayer(main.Ui_window, QMainWindow):
         os.makedirs('preprocessing/video')
 
 
-        c = Video_Processing()
-        c.preprocessing(self.input_file_name)
-        emb = c.embeddings(self.input_file_name)
+        video_processing = Video_Processing()
+        video_processing.preprocessing(self.input_file_name)
+        self.emb = video_processing.embeddings(self.input_file_name)
+        self.device = video_processing.device
+
+        del video_processing
 
         c = Audio_Processing()
         c.preprocessing(self.input_file_name)
@@ -111,13 +122,73 @@ class VideoPlayer(main.Ui_window, QMainWindow):
     def separate_audio(self):
         #Return a list of separated audio files which are saved locally in folder `preprocessing/audio/`
         #Name of each audio file corresponds to the number given to the checkbox.
+        MODEL = load_model(MODEL_PATH, self.device)
+        def _pad(arr, cur_len, exp_len):
+            ref = np.zeros((exp_len, *arr.shape[1:]), dtype=np.float32)
+            print(ref.shape, arr.shape)
+            if len(arr) != 0:
+                ref[:cur_len] = arr.copy()
+            arr = ref.copy()
+            return arr
 
         if(self.is_preprocessing_done == False):
             return
 
-        # TODO: Call to the model
+        if len(self.emb) == 2:
+            frames = 75
+            sr = 16_000
+            audio_frames = 3*sr
 
+            person_1, person_2 = tuple(self.emb.values())
+            mixed_audio, _ = librosa.load("preprocessing/audio/original.wav", sr=sr)
+
+            # stereo to mono
+            if len(mixed_audio.shape) == 2 and mixed_audio.shape[1] == 2:
+                mixed_audio = mixed_audio.sum(axis=1) / 2
+
+            duration = len(mixed_audio) // sr
+            n_slices = duration // 3
+            remainder = duration % 3
+            separated_audio = {"first": [], "second": []}
+            print(n_slices, duration, sr, len(mixed_audio), len(person_1))
+
+            for n in range(n_slices):
+                emb_1, emb_2 = person_1[n*frames: (n+1)*frames], person_2[n*frames: (n+1)*frames]
+                inp_audio = mixed_audio[n*audio_frames: (n+1)*audio_frames]
+
+                emb_1, emb_2 = np.array(emb_1), np.array(emb_2)
+
+                output_audios = generate_audio(MODEL, inp_audio, [emb_1, emb_2],
+                                               device=self.device, save=False)
+                separated_audio["first"].append(output_audios[0])
+                separated_audio["second"].append(output_audios[1])
+
+            # remainder
+            if remainder:
+                emb_1, emb_2 = person_1[n_slices*frames:], person_2[n_slices*frames:]
+                print(n, frames, len(person_1), len(emb_1))
+                inp_audio = mixed_audio[n_slices*audio_frames:]
+
+                emb_len = len(emb_1)
+
+                #pad
+                emb_1 = _pad(np.squeeze(np.array(emb_1)), emb_len, frames)
+                emb_2 = _pad(np.squeeze(np.array(emb_2)), emb_len, frames)
+
+                inp_audio = _pad(inp_audio, len(inp_audio), sr*3)
+
+                emb_1, emb_2, inp_audio = np.expand_dims(emb_1, axis=1), np.expand_dims(emb_2, axis=1), np.expand_dims(inp_audio, axis=1)
+                output_audios = generate_audio(MODEL, inp_audio, [emb_1, emb_2],
+                                               device=self.device, save=False)
+                separated_audio["first"].append(output_audios[0])
+                separated_audio["second"].append(output_audios[1])
+        else:
+            pass
+            # TODO: 1 v all
+        
+        separated_audio = {k: np.hstack(v) for k, v in separated_audio.items()}
         self.is_audio_separated = True
+        return separated_audio
 
 
 
