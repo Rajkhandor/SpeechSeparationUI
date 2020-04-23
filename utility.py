@@ -16,7 +16,7 @@ class Audio_Processing:
 
 	def preprocessing(self, path):
 		# Separate audio from video
-		command = f'ffmpeg -i {path} preprocessing/audio/original.wav'
+		command = f'ffmpeg -i {path} -ar 16000 preprocessing/audio/original.wav'
 		subprocess.call(command, shell=True)
 
 
@@ -84,7 +84,7 @@ class Video_Processing:
 
 		# Seperate video with no audio
 
-		command = f'ffmpeg -i {path} -c copy -an preprocessing/video/a.mp4'
+		command = f'ffmpeg -i {path} -r 25 -c copy -an preprocessing/video/a.mp4'
 		subprocess.call(command, shell=True)
 
 
@@ -129,12 +129,11 @@ class Video_Processing:
 				a[idx].append(emb)
 
 				# testing for face tracking
-				'''
+				
 				crop = frame.crop((x1,y1,x2,y2))
 				crop = cv2.cvtColor(np.array(crop), cv2.COLOR_RGB2BGR)
 				cv2.imshow(str(idx), crop)
 				cv2.waitKey(1)
-				'''
 				
 			print(len(a[0]))
 		return a
